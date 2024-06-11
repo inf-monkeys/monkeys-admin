@@ -1,0 +1,11 @@
+{
+  "name": "multi-tenancy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "http-proxy": "^1.18.1",
+    "log4js": "^6.9.1",
+    "yaml": "^2.4.5"
+  }
+}

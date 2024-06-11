@@ -66,8 +66,8 @@ export interface Config {
   server: ServerConfig;
   database: DatabaseConfig;
   redis: RedisConfig;
-  auth: AuthConfig;
   pricing: PricingConfig;
+  auth: AuthConfig;
 }
 
 const port = readConfig('server.port', 3000);
@@ -93,6 +93,14 @@ export const config: Config = {
       },
     },
   },
+  auth: {
+    enabled: readConfig('auth.enabled', true),
+    defaultAdmin: readConfig('auth.defaultAdmin', {
+      email: 'admin@infmonkeys.com',
+      password: 'monkeys123',
+    }),
+    sessionSecret: readConfig('auth.sessionSecret', 'monkeys'),
+  },
   database: readConfig('database', {
     type: 'better-sqlite3',
     database: 'data/db.sqlite',
@@ -110,14 +118,6 @@ export const config: Config = {
     // Common config
     prefix: readConfig('redis.prefix', 'monkeys:'),
     options: readConfig('redis.options', {}),
-  },
-  auth: {
-    enabled: readConfig('auth.enabled', true),
-    defaultAdmin: readConfig('auth.defaultAdmin', {
-      email: 'admin@infmonkeys.com',
-      password: 'monkeys123',
-    }),
-    sessionSecret: readConfig('auth.sessionSecret', 'monkeys'),
   },
   pricing: {
     defaultBalance: readConfig('pricing.defaultBalance', 10000),
