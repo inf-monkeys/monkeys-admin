@@ -56,11 +56,13 @@ if (!servers.length) {
 
 // Generate configuration files for each server
 const serverHostToPortMap = {};
+const appIdToPortMap = {};
 const startPort = 8000;
 const serverConfigYamls = servers.map((server, index) => {
   const { appId, host, auth, ...rest } = server;
   const port = startPort + index;
   serverHostToPortMap[host] = port;
+  appIdToPortMap[appId] = port;
   const serverConfig = {
     ...config,
     server: {
@@ -155,11 +157,17 @@ const startServers = async () => {
 const runPorxyServer = (port) => {
   const httpServer = http.createServer((req, res) => {
     const host = req.headers.host;
-    const targetServerPort = serverHostToPortMap[host];
+    const appIdInHeader = req.headers['x-monkeys-appid'];
+    let targetServerPort;
+    if (appIdInHeader) {
+      targetServerPort = appIdToPortMap[appIdInHeader];
+    } else {
+      targetServerPort = serverHostToPortMap[host];
+    }
     if (!targetServerPort) {
       logger.warn(`Domain not found in configuration: ${host}`);
       res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not found');
+      res.end(`Domain not found in configuration: host=${host}, appId=${appIdInHeader}`);
       return;
     }
 
