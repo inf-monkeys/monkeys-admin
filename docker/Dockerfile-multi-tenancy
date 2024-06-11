@@ -18,6 +18,7 @@ COPY --from=builder /usr/src/app/ormconfig.js ./ormconfig.js
 # Copy source code of multi-tenancy to /usr/src/proxy
 WORKDIR /usr/src/proxy
 COPY ./multi-tenancy .
+COPY ./.adminjs ./.adminjs
 RUN yarn
 
 ENV MONKEYS_ADMIN_DIST_FOLDER=/usr/src/server/dist

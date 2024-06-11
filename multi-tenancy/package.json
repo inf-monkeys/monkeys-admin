@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "@babel/plugin-syntax-import-assertions": "^7.24.7",
     "http-proxy": "^1.18.1",
     "log4js": "^6.9.1",
     "yaml": "^2.4.5"
