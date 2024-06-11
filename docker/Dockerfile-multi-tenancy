@@ -20,7 +20,7 @@ WORKDIR /usr/src/proxy
 COPY ./multi-tenancy .
 RUN yarn
 
-ENV MONKEYS_DIST_FOLDER=/usr/src/server/dist
+ENV MONKEYS_ADMIN_DIST_FOLDER=/usr/src/server/dist
 
 EXPOSE 3000
 CMD ["node", "main.js"]
