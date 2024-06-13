@@ -21,6 +21,8 @@ import { WorkflowTemplateEntity } from './entities/workflow/workflow-template.js
 import { WorkflowTriggersEntity } from './entities/workflow/workflow-trigger.js';
 import { BalanceEntity } from './entities/pricing/balance.entity.js';
 import { ConsumeRecordsEntity } from './entities/pricing/consume-records.entity.js';
+import { OrdersEntity } from './entities/pricing/orders.entity.js';
+import { RechargeRecordsEntity } from './entities/pricing/recharge-record.entity.js';
 
 const typeOrmConfig: DataSourceOptions = {
   ...config.database,
@@ -47,6 +49,8 @@ const typeOrmConfig: DataSourceOptions = {
     WorkflowTriggersEntity,
     BalanceEntity,
     ConsumeRecordsEntity,
+    OrdersEntity,
+    RechargeRecordsEntity,
   ],
 };
 

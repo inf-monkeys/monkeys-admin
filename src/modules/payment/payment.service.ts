@@ -1,13 +1,28 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CheckBalanceParams, CheckBalanceResponse, ReportUsageParams } from './payment.interface.js';
+import {
+  CheckBalanceParams,
+  CheckBalanceResponse,
+  CreateOrderParams,
+  PayNotifyDto,
+  ReportUsageParams,
+} from './payment.interface.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BalanceEntity } from '../../database/entities/pricing/balance.entity.js';
 import { Repository } from 'typeorm';
 import { PricingRule, ToolsEntity } from '../../database/entities/tools/tools.entity.js';
-import { ConsumeRecordStatus, ConsumeRecordType, ConsumeRecordsEntity } from '../../database/entities/pricing/consume-records.entity.js';
+import {
+  ConsumeRecordsEntity,
+  ConsumeRecordStatus,
+  ConsumeRecordType,
+} from '../../database/entities/pricing/consume-records.entity.js';
 import { config } from '../../common/config/index.js';
 import { generateDbId } from '../../common/utils/index.js';
 import { IContext } from 'src/common/typings/request.js';
+import { OrdersEntity, PaymentStatus } from '../../database/entities/pricing/orders.entity.js';
+import { WxpayGatewayService } from '../gateways/wxpay/wxpay.service.js';
+import { RechargeRecordsEntity } from '../../database/entities/pricing/recharge-record.entity.js';
+
+import * as math from 'mathjs';
 
 @Injectable()
 export class PaymentService {
@@ -15,6 +30,9 @@ export class PaymentService {
     @InjectRepository(BalanceEntity) private readonly balanceRepository: Repository<BalanceEntity>,
     @InjectRepository(ToolsEntity) private readonly toolsRepository: Repository<ToolsEntity>,
     @InjectRepository(ConsumeRecordsEntity) private readonly consumeRecordsRepository: Repository<ConsumeRecordsEntity>,
+    @InjectRepository(OrdersEntity) private readonly ordersRepository: Repository<OrdersEntity>,
+    @InjectRepository(RechargeRecordsEntity) private readonly rechargeRecordsRepository: Repository<RechargeRecordsEntity>,
+    private readonly wxpayGatewayService: WxpayGatewayService,
   ) {}
 
   public async getOrInitTeamBalance(teamId: string): Promise<BalanceEntity> {
@@ -120,5 +138,94 @@ export class PaymentService {
       consumeRecord.updatedTimestamp = +new Date();
       await this.consumeRecordsRepository.save(consumeRecord);
     }
+  }
+
+  public async createOrder(params: CreateOrderParams, context: IContext) {
+      const { amount } = params;
+      if (isNaN(Number(amount)) || amount <= 0 || amount.toString().includes('.')) {
+        Logger.warn('Received a invalid amount: ', amount);
+        return;
+      }
+
+      const entity: Partial<OrdersEntity> = {
+        id: generateDbId(),
+        isDeleted: false,
+        createdTimestamp: +new Date(),
+        updatedTimestamp: +new Date(),
+        teamId: context.teamId,
+        userId: context.userId,
+        platform: 'wxpay',
+        status: PaymentStatus.PENDING,
+        amount,
+      }
+
+      entity.qrcode = await this.wxpayGatewayService.createWxOrder(amount, entity.id);
+
+      await this.ordersRepository.save(entity);
+
+      return {
+        success: true,
+        data: entity,
+        message: 'Order created',
+      };
+  }
+
+  public async wxNotify(body: PayNotifyDto) {
+    if (body.event_type === 'TRANSACTION.SUCCESS') {
+      const { ciphertext, associated_data: associatedData, nonce } = body.resource;
+      const result: any = this.wxpayGatewayService.decipher(ciphertext, associatedData, nonce);
+      if (typeof result?.out_trade_no !== 'string') {
+        Logger.warn('wxNotify, Invalid out_trade_no: ', result?.out_trade_no);
+        return null;
+      }
+
+      const paymentId: string = result.out_trade_no;
+      const payment = await this.ordersRepository.findOne({ where: { id: paymentId, status: PaymentStatus.PENDING } });
+      if (!payment) {
+        Logger.warn('wxNotify, Payment not found: ', paymentId);
+        return null;
+      }
+
+      payment.status = PaymentStatus.PAID;
+      Logger.log('wxNotify, Payment paid: ', paymentId , 'Payload: ', result);
+      await this.ordersRepository.save(payment);
+
+      await this.changeBalance(payment.teamId, payment.userId, payment.amount, '用户充值', payment.id);
+
+      payment.status = PaymentStatus.DELIVERED;
+      await this.ordersRepository.save(payment);
+
+      return {
+        success: true,
+        data: payment,
+        message: 'Payment success',
+      }
+    }
+  }
+
+  public async changeBalance(teamId: string, userId: string, changedBalance: number, remark?: string, paymentId?: string) {
+    changedBalance = Math.floor(changedBalance);
+
+    const balanceEntity = await this.getOrInitTeamBalance(teamId);
+
+    const newBalance = math.chain(balanceEntity.balance).add(changedBalance).done();
+
+    balanceEntity.balance = newBalance;
+    balanceEntity.updatedTimestamp = +new Date();
+    await this.balanceRepository.save(balanceEntity);
+
+    const rechargeRecord: Partial<RechargeRecordsEntity> = {
+      id: generateDbId(),
+      isDeleted: false,
+      createdTimestamp: +new Date(),
+      updatedTimestamp: +new Date(),
+      teamId,
+      userId,
+      paymentId,
+      changedBalance,
+      remainBalance: newBalance,
+      remark,
+    }
+    await this.rechargeRecordsRepository.save(rechargeRecord);
   }
 }

@@ -18,6 +18,8 @@ import { CommonMiddleware } from './common/middlewares/common.middleware.js';
 import { DatabaseModule } from './database/database.module.js';
 import { BalanceEntity } from './database/entities/pricing/balance.entity.js';
 import { ConsumeRecordsEntity } from './database/entities/pricing/consume-records.entity.js';
+import { OrdersEntity } from './database/entities/pricing/orders.entity.js';
+import { RechargeRecordsEntity } from './database/entities/pricing/recharge-record.entity.js';
 
 AdminJS.registerAdapter({
   Resource: AdminJSTypeorm.Resource,
@@ -67,6 +69,32 @@ const authenticate = async (email: string, password: string) => {
                 resource: ConsumeRecordsEntity,
                 options: {
                   id: 'Consume Records',
+                  parent: {
+                    name: 'Pricing',
+                    icon: 'DollarSign',
+                  },
+                  sort: {
+                    direction: 'desc',
+                  },
+                },
+              },
+              {
+                resource: OrdersEntity,
+                options: {
+                  id: 'Orders',
+                  parent: {
+                    name: 'Pricing',
+                    icon: 'DollarSign',
+                  },
+                  sort: {
+                    direction: 'desc',
+                  },
+                },
+              },
+              {
+                resource: RechargeRecordsEntity,
+                options: {
+                  id: 'Recharge Records',
                   parent: {
                     name: 'Pricing',
                     icon: 'DollarSign',

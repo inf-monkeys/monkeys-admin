@@ -62,12 +62,25 @@ export interface PricingConfig {
   defaultBalance: number;
 }
 
+export interface PaymentConfig {
+  wxpay?: {
+    appid: string;
+    mchid: string;
+    v3key: string;
+    publicKey: string;
+    privateKey: string;
+    notifyUrl: string;
+    orderDesc?: string;
+  }
+}
+
 export interface Config {
   server: ServerConfig;
   database: DatabaseConfig;
   redis: RedisConfig;
   pricing: PricingConfig;
   auth: AuthConfig;
+  payment: PaymentConfig;
 }
 
 const port = readConfig('server.port', 3000);
@@ -121,6 +134,17 @@ export const config: Config = {
   },
   pricing: {
     defaultBalance: readConfig('pricing.defaultBalance', 10000),
+  },
+  payment: {
+    wxpay: {
+      appid: readConfig('payment.wxpay.appid'),
+      mchid: readConfig('payment.wxpay.mchid'),
+      v3key: readConfig('payment.wxpay.v3key'),
+      publicKey: readConfig('payment.wxpay.publicKey'),
+      privateKey: readConfig('payment.wxpay.privateKey'),
+      notifyUrl: readConfig('payment.wxpay.notifyUrl'),
+      orderDesc: readConfig('payment.wxpay.orderDesc', '猴子无限订单'),
+    },
   },
 };
 

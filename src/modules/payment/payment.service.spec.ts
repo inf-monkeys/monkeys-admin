@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+// @ts-ignore
 import { PaymentService } from './payment.service';
 
 describe('PaymentService', () => {
