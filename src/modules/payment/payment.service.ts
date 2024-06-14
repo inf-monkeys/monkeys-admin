@@ -1,20 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  CheckBalanceParams,
-  CheckBalanceResponse,
-  CreateOrderParams,
-  PayNotifyDto,
-  ReportUsageParams,
-} from './payment.interface.js';
+import { CheckBalanceParams, CheckBalanceResponse, CreateOrderParams, PayNotifyDto, ReportUsageParams } from './payment.interface.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BalanceEntity } from '../../database/entities/pricing/balance.entity.js';
 import { Repository } from 'typeorm';
 import { PricingRule, ToolsEntity } from '../../database/entities/tools/tools.entity.js';
-import {
-  ConsumeRecordsEntity,
-  ConsumeRecordStatus,
-  ConsumeRecordType,
-} from '../../database/entities/pricing/consume-records.entity.js';
+import { ConsumeRecordsEntity, ConsumeRecordStatus, ConsumeRecordType } from '../../database/entities/pricing/consume-records.entity.js';
 import { config } from '../../common/config/index.js';
 import { generateDbId } from '../../common/utils/index.js';
 import { IContext } from 'src/common/typings/request.js';
@@ -92,6 +82,26 @@ export class PaymentService {
     };
   }
 
+  public async getBalance(context: IContext) {
+    const { teamId } = context;
+    const balanceEntity = await this.getOrInitTeamBalance(teamId);
+    return {
+      success: true,
+      message: 'Balance fetched',
+      data: { amount: Math.floor(balanceEntity.balance), totalConsume: await this.getTotalConsume(teamId), totalReCharge: await this.getTotalReCharge(teamId) },
+    };
+  }
+
+  public async getTotalConsume(teamId: string): Promise<number> {
+    const consumeRecords = await this.consumeRecordsRepository.find({ where: { teamId, isDeleted: false } });
+    return consumeRecords.reduce((acc, record) => acc + record.amount, 0);
+  }
+
+  public async getTotalReCharge(teamId: string): Promise<number> {
+    const rechargeRecords = await this.rechargeRecordsRepository.find({ where: { teamId, isDeleted: false } });
+    return rechargeRecords.reduce((acc, record) => acc + record.changedBalance, 0);
+  }
+
   public async reportUsage(params: ReportUsageParams, context: IContext): Promise<void> {
     Logger.log('Report usage: ', params, context);
     const {
@@ -141,33 +151,38 @@ export class PaymentService {
   }
 
   public async createOrder(params: CreateOrderParams, context: IContext) {
-      const { amount } = params;
-      if (isNaN(Number(amount)) || amount <= 0 || amount.toString().includes('.')) {
-        Logger.warn('Received a invalid amount: ', amount);
-        return;
-      }
-
-      const entity: Partial<OrdersEntity> = {
-        id: generateDbId(),
-        isDeleted: false,
-        createdTimestamp: +new Date(),
-        updatedTimestamp: +new Date(),
-        teamId: context.teamId,
-        userId: context.userId,
-        platform: 'wxpay',
-        status: PaymentStatus.PENDING,
-        amount,
-      }
-
-      entity.qrcode = await this.wxpayGatewayService.createWxOrder(amount, entity.id);
-
-      await this.ordersRepository.save(entity);
-
+    let { amount } = params;
+    if (isNaN(Number(amount)) || amount <= 0 || amount.toString().includes('.')) {
+      Logger.warn('Received a invalid amount: ', amount);
       return {
-        success: true,
-        data: entity,
-        message: 'Order created',
+        success: false,
+        message: 'Invalid amount: ' + amount,
       };
+    }
+
+    amount = Math.floor(amount);
+
+    const entity: Partial<OrdersEntity> = {
+      id: generateDbId(),
+      isDeleted: false,
+      createdTimestamp: +new Date(),
+      updatedTimestamp: +new Date(),
+      teamId: context.teamId,
+      userId: context.userId,
+      platform: 'wxpay',
+      status: PaymentStatus.PENDING,
+      amount,
+    };
+
+    entity.qrcode = await this.wxpayGatewayService.createWxOrder(amount, entity.id);
+
+    await this.ordersRepository.save(entity);
+
+    return {
+      success: true,
+      data: entity,
+      message: 'Order created',
+    };
   }
 
   public async wxNotify(body: PayNotifyDto) {
@@ -187,7 +202,7 @@ export class PaymentService {
       }
 
       payment.status = PaymentStatus.PAID;
-      Logger.log('wxNotify, Payment paid: ', paymentId , 'Payload: ', result);
+      Logger.log('wxNotify, Payment paid: ', paymentId, 'Payload: ', result);
       await this.ordersRepository.save(payment);
 
       await this.changeBalance(payment.teamId, payment.userId, payment.amount, '用户充值', payment.id);
@@ -199,7 +214,7 @@ export class PaymentService {
         success: true,
         data: payment,
         message: 'Payment success',
-      }
+      };
     }
   }
 
@@ -225,7 +240,7 @@ export class PaymentService {
       changedBalance,
       remainBalance: newBalance,
       remark,
-    }
+    };
     await this.rechargeRecordsRepository.save(rechargeRecord);
   }
 }

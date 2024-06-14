@@ -7,4 +7,4 @@ import { WxpayGatewayService } from './wxpay.service.js';
   providers: [WxpayGatewayService],
   exports: [WxpayGatewayService],
 })
-export class WxpayModule {}
+export class WxpayGatewaysModule {}

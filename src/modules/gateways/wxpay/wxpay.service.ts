@@ -1,4 +1,4 @@
-import { config } from '../../../common/config/index.js'
+import { config } from '../../../common/config/index.js';
 import { Injectable } from '@nestjs/common';
 import WxPay from 'wechatpay-node-v3';
 
@@ -9,7 +9,7 @@ export class WxpayGatewayService {
     if (config.payment.wxpay.appid) {
       this.pay = new WxPay({
         appid: config.payment.wxpay.appid,
-        mchid: config.payment.wxpay.mchid,
+        mchid: config.payment.wxpay.mchid.toString(),
         publicKey: Buffer.from(config.payment.wxpay.publicKey),
         privateKey: Buffer.from(config.payment.wxpay.privateKey),
       });
@@ -28,9 +28,8 @@ export class WxpayGatewayService {
     };
     const result = await this.pay.transactions_native(params);
     const { status, data } = result;
-    console.log('wxpay result: ', result);
-    if (status === 200 && data) {
-      return data as string;
+    if (status === 200 && data?.code_url) {
+      return data.code_url as string;
     }
     throw new Error('下单失败');
   }

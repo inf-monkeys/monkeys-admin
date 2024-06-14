@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req } from '@nestjs/common';
 import { IRequest } from 'src/common/typings/request.js';
 import { CheckBalanceParams, CreateOrderParams, PayNotifyDto, ReportUsageParams } from './payment.interface.js';
 import { PaymentService } from './payment.service.js';
@@ -11,6 +11,12 @@ export class PaymentController {
   public async checkBalance(@Req() req: IRequest, @Body() dto: CheckBalanceParams) {
     const { context } = req;
     return this.paymentService.checkBalance(dto, context);
+  }
+
+  @Get('/get-balance')
+  public async getBalance(@Req() req: IRequest) {
+    const { context } = req;
+    return this.paymentService.getBalance(context);
   }
 
   @Post('/report-usage')
@@ -27,6 +33,7 @@ export class PaymentController {
 
   @Post('/wx-notify')
   async getWxNotify(@Body() body: PayNotifyDto) {
+    console.log('wx-notify', body);
     return this.paymentService.wxNotify(body);
   }
 }
