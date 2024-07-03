@@ -191,14 +191,20 @@ export class PaymentService {
       const result: any = this.wxpayGatewayService.decipher(ciphertext, associatedData, nonce);
       if (typeof result?.out_trade_no !== 'string') {
         Logger.warn('wxNotify, Invalid out_trade_no: ', result?.out_trade_no);
-        return null;
+        return {
+          success: false,
+          message: 'Payment failed, invalid out_trade_no',
+        };
       }
 
       const paymentId: string = result.out_trade_no;
       const payment = await this.ordersRepository.findOne({ where: { id: paymentId, status: PaymentStatus.PENDING } });
       if (!payment) {
         Logger.warn('wxNotify, Payment not found: ', paymentId);
-        return null;
+        return {
+          success: false,
+          message: 'Payment not found',
+        };
       }
 
       payment.status = PaymentStatus.PAID;

@@ -33,7 +33,6 @@ export class PaymentController {
 
   @Post('/wx-notify')
   async getWxNotify(@Body() body: PayNotifyDto) {
-    console.log('wx-notify', body);
     return this.paymentService.wxNotify(body);
   }
 }
