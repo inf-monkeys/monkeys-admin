@@ -71,7 +71,7 @@ export interface PaymentConfig {
     privateKey: string;
     notifyUrl: string;
     orderDesc?: string;
-  }
+  };
 }
 
 export interface Config {
@@ -117,7 +117,7 @@ export const config: Config = {
   database: readConfig('database', {
     type: 'better-sqlite3',
     database: 'data/db.sqlite',
-    synchronize: true,
+    synchronize: false,
   }),
   redis: {
     mode: readConfig('redis.mode', RedisMode.standalone),
