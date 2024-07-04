@@ -51,4 +51,9 @@ export class PaymentController {
   async getWxNotify(@Body() body: PayNotifyDto) {
     return this.paymentService.wxNotify(body);
   }
+
+  @Get('/tool-price')
+  async getToolPrice() {
+    return this.paymentService.getToolPrice();
+  }
 }

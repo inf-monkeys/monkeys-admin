@@ -329,4 +329,13 @@ export class PaymentService {
     };
     await this.rechargeRecordsRepository.save(rechargeRecord);
   }
+
+  public async getToolPrice() {
+    const tools = await this.toolsRepository.find({ where: { isDeleted: false } });
+    return {
+      success: true,
+      data: tools.map((tool) => ({ name: tool.name, unitPrice: tool?.unitPrice ?? 0, pricingRule: tool?.pricingRule ?? PricingRule.FREE })),
+      message: 'Tool price fetched',
+    };
+  }
 }
