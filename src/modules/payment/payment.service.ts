@@ -7,13 +7,13 @@ import { PricingRule, ToolsEntity } from '../../database/entities/tools/tools.en
 import { ConsumeRecordsEntity, ConsumeRecordStatus, ConsumeRecordType } from '../../database/entities/pricing/consume-records.entity.js';
 import { config } from '../../common/config/index.js';
 import { generateDbId } from '../../common/utils/index.js';
-import { IContext } from 'src/common/typings/request.js';
+import { IContext } from '../../common/typings/request.js';
 import { OrdersEntity, PaymentStatus } from '../../database/entities/pricing/orders.entity.js';
 import { WxpayGatewayService } from '../gateways/wxpay/wxpay.service.js';
 import { RechargeRecordsEntity } from '../../database/entities/pricing/recharge-record.entity.js';
 
 import * as math from 'mathjs';
-import { logger } from 'src/common/logger/index.js';
+import { logger } from '../../common/logger/index.js';
 
 @Injectable()
 export class PaymentService {

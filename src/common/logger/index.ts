@@ -1,4 +1,4 @@
-import { configure, getLogger, Logger } from 'log4js';
+import log4js from 'log4js';
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 
 const dateFileRollingOptions = {
@@ -7,7 +7,7 @@ const dateFileRollingOptions = {
   keepFileExt: true,
 };
 
-configure({
+log4js.configure({
   appenders: {
     stdout: {
       type: 'stdout',
@@ -30,4 +30,4 @@ configure({
   categories: { default: { appenders: ['stdout'], level: 'ALL' } },
 });
 
-export const logger: Logger = getLogger('default');
+export const logger = log4js.getLogger('default');
