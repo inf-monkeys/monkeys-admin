@@ -38,4 +38,9 @@ export class WxpayGatewayService {
     if (!this.pay) return;
     return this.pay.decipher_gcm(ciphertext, associated_data, nonce, config.payment.wxpay.v3key);
   }
+
+  public closeOrder(outTradeNumber: string) {
+    if (!this.pay) return;
+    return this.pay.close(outTradeNumber);
+  }
 }

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CheckBalanceParams, CheckBalanceResponse, CreateOrderParams, PayNotifyDto, ReportUsageParams } from './payment.interface.js';
+import { CheckBalanceParams, CheckBalanceResponse, CreateOrderParams, GetOrderParams, PayNotifyDto, ReportUsageParams } from './payment.interface.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BalanceEntity } from '../../database/entities/pricing/balance.entity.js';
 import { Repository } from 'typeorm';
@@ -150,6 +150,52 @@ export class PaymentService {
     }
   }
 
+  public async getOrders(teamId: string, params: GetOrderParams) {
+    const { types, page, limit } = params;
+    const queryTypes = types.split(',');
+
+    const orders = [];
+    let total = 0;
+
+    if (queryTypes.includes('recharge')) {
+      const [data, count] = await this.ordersRepository.findAndCount({
+        where: { teamId },
+        skip: (+page - 1) * +limit,
+        take: +limit,
+        order: { createdTimestamp: 'DESC' },
+      });
+      orders.push(...data);
+      total += count;
+    }
+
+    if (queryTypes.includes('execute_tool')) {
+      const [data, count] = await this.consumeRecordsRepository.findAndCount({
+        where: { teamId, type: ConsumeRecordType.EXECUTE_TOOL },
+        skip: (+page - 1) * +limit,
+        take: +limit,
+        order: { createdTimestamp: 'DESC' },
+      });
+      orders.push(...data);
+      total += count;
+    }
+
+    return {
+      success: true,
+      data: orders,
+      total,
+      message: 'Orders fetched',
+    };
+  }
+
+  public async getOrderById(orderId: string) {
+    const order = await this.ordersRepository.findOne({ where: { id: orderId } });
+    return {
+      success: true,
+      data: order,
+      message: 'Order fetched',
+    };
+  }
+
   public async createOrder(params: CreateOrderParams, context: IContext) {
     let { amount } = params;
     if (isNaN(Number(amount)) || amount <= 0 || amount.toString().includes('.')) {
@@ -182,6 +228,28 @@ export class PaymentService {
       success: true,
       data: entity,
       message: 'Order created',
+    };
+  }
+
+  public async closeOrder(orderId: string) {
+    const order = await this.ordersRepository.findOne({ where: { id: orderId } });
+    if (!order) {
+      return {
+        success: false,
+        message: 'Order not found',
+      };
+    }
+
+    order.status = PaymentStatus.CLOSED;
+
+    await this.wxpayGatewayService.closeOrder(orderId);
+
+    await this.ordersRepository.save(order);
+
+    return {
+      success: true,
+      data: order,
+      message: 'Order closed',
     };
   }
 

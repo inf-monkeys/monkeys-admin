@@ -27,12 +27,12 @@ export class OrdersEntity extends BaseEntity {
   @Column({
     type: 'varchar',
     nullable: true,
-    name: 'type'
+    name: 'platform',
   })
   platform: string;
 
   @Column({
-    name: 'status',
+    name: 'amount',
     type: 'float',
   })
   amount: number;
@@ -40,14 +40,14 @@ export class OrdersEntity extends BaseEntity {
   @Column({
     type: 'varchar',
     nullable: true,
-    name: 'amount',
+    name: 'status',
   })
   status: PaymentStatus;
 
   @Column({
     type: 'varchar',
     nullable: true,
-    name: 'payload',
+    name: 'qrcode',
   })
   qrcode?: string;
 }

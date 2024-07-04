@@ -33,3 +33,9 @@ export class PayNotifyDto {
   };
   summary: string;
 }
+
+export interface GetOrderParams {
+  page?: number;
+  limit?: number;
+  types?: string;
+}

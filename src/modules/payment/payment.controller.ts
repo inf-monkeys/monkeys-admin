@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Req } from '@nestjs/common';
 import { IRequest } from 'src/common/typings/request.js';
-import { CheckBalanceParams, CreateOrderParams, PayNotifyDto, ReportUsageParams } from './payment.interface.js';
+import { CheckBalanceParams, CreateOrderParams, GetOrderParams, PayNotifyDto, ReportUsageParams } from './payment.interface.js';
 import { PaymentService } from './payment.service.js';
 
 @Controller('payment')
@@ -25,10 +25,26 @@ export class PaymentController {
     return this.paymentService.reportUsage(dto, context);
   }
 
+  @Post('/get-orders')
+  public async getOrders(@Req() req: IRequest, @Body() dto: GetOrderParams) {
+    const { context } = req;
+    return this.paymentService.getOrders(context.teamId, dto);
+  }
+
+  @Get('/orders/:orderId')
+  public async getOrder(@Param('orderId') orderId: string) {
+    return this.paymentService.getOrderById(orderId);
+  }
+
   @Post('/orders')
   async createOrder(@Req() req: IRequest, @Body() dto: CreateOrderParams) {
     const { context } = req;
     return this.paymentService.createOrder(dto, context);
+  }
+
+  @Delete('/orders/:orderId')
+  public async closeOrder(@Param('orderId') orderId: string) {
+    return this.paymentService.closeOrder(orderId);
   }
 
   @Post('/wx-notify')
