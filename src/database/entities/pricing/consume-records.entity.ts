@@ -1,4 +1,4 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import { BaseEntity } from '../base/base.js';
 
 export enum ConsumeRecordType {

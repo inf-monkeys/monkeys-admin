@@ -10,6 +10,7 @@ export interface CheckBalanceResponse {
 export interface ReportUsageParams {
   toolName: string;
   usage: {
+    success: boolean;
     takes: number;
     tokenCount: number;
   };

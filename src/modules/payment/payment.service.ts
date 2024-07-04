@@ -13,6 +13,7 @@ import { WxpayGatewayService } from '../gateways/wxpay/wxpay.service.js';
 import { RechargeRecordsEntity } from '../../database/entities/pricing/recharge-record.entity.js';
 
 import * as math from 'mathjs';
+import { logger } from 'src/common/logger/index.js';
 
 @Injectable()
 export class PaymentService {
@@ -103,10 +104,10 @@ export class PaymentService {
   }
 
   public async reportUsage(params: ReportUsageParams, context: IContext): Promise<void> {
-    Logger.log('Report usage: ', params, context);
+    logger.info('Report usage: ', params, context);
     const {
       toolName,
-      usage: { takes = 0, tokenCount = 0 },
+      usage: { takes = 0, tokenCount = 0, success },
     } = params;
     const { teamId } = context;
     const balanceEntity = await this.getOrInitTeamBalance(teamId);
@@ -119,34 +120,45 @@ export class PaymentService {
     if (pricingRule === PricingRule.FREE) {
       return;
     }
-    Logger.log('Pricing rule: ', pricingRule);
-    Logger.log('Unit price: ', unitPrice);
-    let amount = 0;
-    if (pricingRule === PricingRule.PER_EXECUTR) {
-      amount = unitPrice;
-    } else if (pricingRule === PricingRule.PER_1K_TOKEN) {
-      Logger.log('Token count: ', tokenCount);
-      if (typeof tokenCount !== 'number' || tokenCount < 0) {
-        Logger.warn('Received a invalid token count: ', tokenCount);
-      } else {
-        amount = Math.floor(unitPrice * (tokenCount / 1000));
+
+    if (success) {
+      logger.info('Pricing rule: ', pricingRule);
+      logger.info('Unit price: ', unitPrice);
+      let amount = 0;
+      if (pricingRule === PricingRule.PER_EXECUTR) {
+        amount = unitPrice;
+      } else if (pricingRule === PricingRule.PER_1K_TOKEN) {
+        logger.info('Token count: ', tokenCount);
+        if (typeof tokenCount !== 'number' || tokenCount < 0) {
+          Logger.warn('Received a invalid token count: ', tokenCount);
+        } else {
+          amount = Math.floor(unitPrice * (tokenCount / 1000));
+        }
+      } else if (pricingRule === PricingRule.PER_1MIN) {
+        amount = Math.floor(unitPrice * (takes / 1000 / 60));
       }
-    } else if (pricingRule === PricingRule.PER_1MIN) {
-      amount = Math.floor(unitPrice * (takes / 1000));
-    }
 
-    Logger.log('Amount: ', amount);
-    balanceEntity.balance -= amount;
-    balanceEntity.updatedTimestamp = +new Date();
-    Logger.log('New balance: ', balanceEntity.balance);
-    await this.balanceRepository.save(balanceEntity);
+      logger.info('Amount: ', amount);
+      balanceEntity.balance -= amount;
+      balanceEntity.updatedTimestamp = +new Date();
+      logger.info('New balance: ', balanceEntity.balance);
+      await this.balanceRepository.save(balanceEntity);
 
-    const consumeRecord = await this.consumeRecordsRepository.findOne({ where: { teamId, status: ConsumeRecordStatus.PENDING, taskId: context.taskId } });
-    if (consumeRecord) {
-      consumeRecord.status = ConsumeRecordStatus.SUCCESS;
-      consumeRecord.amount = amount;
-      consumeRecord.updatedTimestamp = +new Date();
-      await this.consumeRecordsRepository.save(consumeRecord);
+      const consumeRecord = await this.consumeRecordsRepository.findOne({ where: { teamId, status: ConsumeRecordStatus.PENDING, taskId: context.taskId } });
+      if (consumeRecord) {
+        consumeRecord.status = ConsumeRecordStatus.SUCCESS;
+        consumeRecord.amount = amount;
+        consumeRecord.updatedTimestamp = +new Date();
+        await this.consumeRecordsRepository.save(consumeRecord);
+      }
+    } else {
+      const consumeRecord = await this.consumeRecordsRepository.findOne({ where: { teamId, status: ConsumeRecordStatus.PENDING, taskId: context.taskId } });
+      if (consumeRecord) {
+        consumeRecord.status = ConsumeRecordStatus.FAILED;
+        consumeRecord.amount = 0;
+        consumeRecord.updatedTimestamp = +new Date();
+        await this.consumeRecordsRepository.save(consumeRecord);
+      }
     }
   }
 
@@ -276,7 +288,7 @@ export class PaymentService {
       }
 
       payment.status = PaymentStatus.PAID;
-      Logger.log('wxNotify, Payment paid: ', paymentId, 'Payload: ', result);
+      logger.info('wxNotify, Payment paid: ', paymentId, 'Payload: ', result);
       await this.ordersRepository.save(payment);
 
       await this.changeBalance(payment.teamId, payment.userId, payment.amount, '用户充值', payment.id);

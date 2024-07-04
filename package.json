@@ -33,6 +33,7 @@
     "express-formidable": "^1.2.0",
     "express-session": "^1.18.0",
     "ioredis": "^5.4.1",
+    "log4js": "^6.9.1",
     "mathjs": "^13.0.0",
     "pg": "latest",
     "react": "^18.3.1",
